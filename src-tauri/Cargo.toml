@@ -1,0 +1,21 @@
+# Winfluencers masaustu kabugu — Capacitor remote-URL deseninin Tauri v2 karsiligi.
+# Icerik canli winvestour.com; kabuk pencere + tepsi + UA damgasi tasir.
+[package]
+name = "winfluencers-desktop"
+version = "1.0.0"
+description = "Winfluencers - Influencer Programi (Winvestour)"
+authors = ["Winvestour LLC"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
