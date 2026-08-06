@@ -2,34 +2,26 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Winfluencers",
   "mainBinaryName": "Winfluencers",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "identifier": "com.winvestour.influencer.desktop",
   "build": {
-    "frontendDist": "https://www.winvestour.com/?app=influencer"
+    "frontendDist": "../splash"
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [
-      {
-        "label": "main",
-        "title": "Winfluencers",
-        "width": 1280,
-        "height": 820,
-        "minWidth": 900,
-        "minHeight": 600,
-        "center": true,
-        "decorations": false,
-        "backgroundColor": "#E11D48",
-        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 WinvestourApp/influencer WinvestourDesktop/1.0"
-      }
-    ],
     "security": {
       "csp": null
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi", "deb", "rpm", "appimage"],
+    "targets": [
+      "nsis",
+      "msi",
+      "deb",
+      "rpm",
+      "appimage"
+    ],
     "publisher": "Winvestour LLC",
     "copyright": "© 2026 Winvestour LLC",
     "shortDescription": "Winfluencers - Influencer Programi",
