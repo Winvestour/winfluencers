@@ -91,11 +91,37 @@ fn reveal_main(app: &AppHandle, revealed: &Arc<AtomicBool>, needs_os_titlebar: b
         }
         let _ = main.show();
         let _ = main.set_focus();
+        // Pencere gorunur oldu: site preloader'i hala duruyorsa simdi kaldir.
+        // (Bkz. PRELOADER_KILL_JS ustundeki not — 2. katman.)
+        let _ = main.eval(PRELOADER_KILL_JS);
     }
     if let Some(splash) = app.get_webview_window("splashscreen") {
         let _ = splash.close();
     }
 }
+
+/// ⛔ 6 Agu (2. tur) — TUTKU: "bak mesela yine takildi... kapatip acinca 2.de
+/// duzeliyor." Semptom: splash KAPANMIS, pencere GORUNUR, ama sitenin kendi
+/// `#wv-preloader`'i (mor W + spinner) ekranda ASILI kaliyor.
+///
+/// Sitedeki gizleme betigi (src/app/layout.tsx) preloader'i `DOMContentLoaded`
+/// ya da 6sn'lik `setTimeout` ile kaldiriyor. Ikisi de sayfanin KENDI
+/// zamanlamasina bagli: pencere `on_page_load` bitene kadar GIZLI durdugu icin
+/// (Chromium gizli sayfalarda zamanlayicilari kisar, DOMContentLoaded ise
+/// HTML akisi takilirsa hic tetiklenmez) ilk — soguk — acilista bu iki yol da
+/// gecikebiliyor. Ikinci acilista sayfa onbellekten geldigi icin fark edilmiyor.
+///
+/// COZUM: preloader'in kalkmasini sitenin zamanlayicisina BIRAKMA, kabuk
+/// tarafindan garanti et. Iki katman:
+///   1) `initialization_script` — her belgede document-start'ta kurulur; sayfa
+///      GORUNUR hale gelir gelmez (`visibilitychange`) preloader'i siler.
+///      Kisilma bu olayi etkilemez, pencere gosterildigi an tetiklenir.
+///   2) `reveal_main` icindeki `eval` — pencereyi gosterdigimiz anda Rust'tan
+///      dogrudan calistirilir; 1. katman herhangi bir sebeple kurulamazsa
+///      (betik enjeksiyonu basarisiz) son care budur.
+///
+/// ⚠️ Bu betigi silme: sitedeki gizleyici tek basina YETMIYOR (canli yakalandi).
+const PRELOADER_KILL_JS: &str = "(function(){var k=function(){try{var e=document.getElementById('wv-preloader');if(e&&e.parentNode)e.parentNode.removeChild(e);}catch(_){}};var a=function(){k();setTimeout(k,60);setTimeout(k,600);};if(!window.__wvKill){window.__wvKill=1;document.addEventListener('readystatechange',a);document.addEventListener('DOMContentLoaded',a);window.addEventListener('pageshow',a);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')a();});setTimeout(a,3000);}a();})()";
 
 fn main() {
     tauri::Builder::default()
@@ -170,6 +196,8 @@ fn main() {
                 // acilmiyor) — kapatmanin maliyeti yok, kazanci HTML5 DnD.
                 .disable_drag_drop_handler()
                 .user_agent(&user_agent)
+                // Preloader guvenlik agi — 1. katman (bkz. PRELOADER_KILL_JS).
+                .initialization_script(PRELOADER_KILL_JS)
                 // Dis baglanti (target="_blank"/window.open) istegi: app icinde YENI
                 // pencere ACMA (Deny), sistemin varsayilan tarayicisinda ac.
                 .on_new_window(|url, _features| {
