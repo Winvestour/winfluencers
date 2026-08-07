@@ -1,7 +1,7 @@
 {
   "name": "winfluencers-desktop",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Winfluencers desktop shell (Tauri v2, remote-URL) — native window for https://www.winvestour.com/winfluencers",
   "license": "MIT",
   "scripts": {

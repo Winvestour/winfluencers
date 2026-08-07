@@ -3,7 +3,7 @@
 # Kaynak monorepo'daki desktop/ ile senkron tutulur (6 Agu 2026).
 [package]
 name = "winfluencers-desktop"
-version = "1.0.4"
+version = "1.0.5"
 description = "Winfluencers - Influencer Programi (Winvestour)"
 authors = ["Winvestour LLC"]
 edition = "2021"
