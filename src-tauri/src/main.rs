@@ -73,6 +73,11 @@ fn brand_for(identifier: &str) -> Brand {
         Brand { key: "reseller", color: Color(0x05, 0x96, 0x69, 255) }
     } else if identifier.contains("staff") {
         Brand { key: "staff", color: Color(0x0B, 0x1F, 0x3A, 255) }
+    } else if identifier.contains("hub") {
+        // 6 Agu — CATI UYGULAMASI. Digerlerinden farki: tek bir urune degil
+        // SISTEMIN TAMAMINA acilir (bkz. asagidaki URL dali). Marka rengi
+        // Winvestour mavisi.
+        Brand { key: "hub", color: Color(0x00, 0x46, 0x8C, 255) }
     } else {
         Brand { key: "social", color: Color(0x7C, 0x3A, 0xED, 255) }
     }
@@ -121,7 +126,13 @@ fn reveal_main(app: &AppHandle, revealed: &Arc<AtomicBool>, needs_os_titlebar: b
 ///      (betik enjeksiyonu basarisiz) son care budur.
 ///
 /// ⚠️ Bu betigi silme: sitedeki gizleyici tek basina YETMIYOR (canli yakalandi).
-const PRELOADER_KILL_JS: &str = "(function(){var k=function(){try{var e=document.getElementById('wv-preloader');if(e&&e.parentNode)e.parentNode.removeChild(e);}catch(_){}};var a=function(){k();setTimeout(k,60);setTimeout(k,600);};if(!window.__wvKill){window.__wvKill=1;document.addEventListener('readystatechange',a);document.addEventListener('DOMContentLoaded',a);window.addEventListener('pageshow',a);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')a();});setTimeout(a,3000);}a();})()";
+/// ⛔ DUGUMU SILME, SADECE GIZLE. Ilk surumu `removeChild` yapiyordu; o dugum
+/// React agacinin parcasi (SSR HTML'inde var) ve istemcide silinince hydration
+/// uyusmazligi olusuyor — canli `ErrorReport`'ta React #418 (24 kayit) ve
+/// streaming sirasinda `$RS` icinde "null.parentNode" olarak goruldu.
+/// `wv-preloader-out` sinifi gizlemeyi TAMAMEN CSS'te yapar (globals.css:
+/// opacity + visibility + pointer-events), DOM yapisi hic degismez.
+const PRELOADER_KILL_JS: &str = "(function(){var k=function(){try{var e=document.getElementById('wv-preloader');if(e)e.classList.add('wv-preloader-out');}catch(_){}};var a=function(){k();setTimeout(k,60);setTimeout(k,600);};if(!window.__wvKill){window.__wvKill=1;document.addEventListener('readystatechange',a);document.addEventListener('DOMContentLoaded',a);window.addEventListener('pageshow',a);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')a();});setTimeout(a,3000);}a();})()";
 
 fn main() {
     tauri::Builder::default()
@@ -165,11 +176,26 @@ fn main() {
             // parametresiyle genel siteyi.
             let url: tauri::Url = if app_key == "staff" {
                 "https://www.winvestour.com/admin".parse().expect("gecersiz baslangic URL'i")
+            } else if app_key == "hub" {
+                // ⛔ 6 Agu — CATI UYGULAMASI: `?app=` VERILMEZ. O parametre siteyi
+                // tek-urun kabuk moduna sokar (odakli nav, digerleri gizli); catinin
+                // amaci tam tersi — "tum sistemin webview olarak dahil oldugu"
+                // uygulama. Parametresiz acilinca site normal, tam halinde calisir.
+                "https://www.winvestour.com/".parse().expect("gecersiz baslangic URL'i")
             } else {
                 format!("https://www.winvestour.com/?app={app_key}").parse().expect("gecersiz baslangic URL'i")
             };
+            // ⛔ 6 Agu — CATI UYGULAMASI `WinvestourApp/` ETIKETI GONDERMEZ.
+            // Site o etiketi "tek-urun kabuk modu" sinyali olarak kullaniyor ve
+            // TANIMADIGI bir deger gorunce (hub) baslik cubugunu Wocial'a
+            // dusuruyordu (kurulu kabukta olculdu: pencere basligi Winvestour
+            // ama site mor "Wocial" seridi ciziyordu). Catinin amaci zaten
+            // sitenin TAM hali → etiketsiz gitmek dogru davranis.
+            // `WinvestourDesktop/1.0` KALIYOR: masaustune ozel davranislar
+            // (indirme kartlari vb.) ona bakiyor, urun kimligine degil.
+            let app_tag = if app_key == "hub" { String::new() } else { format!("WinvestourApp/{app_key} ") };
             let user_agent = format!(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 WinvestourApp/{app_key} WinvestourDesktop/1.0"
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 {app_tag}WinvestourDesktop/1.0"
             );
 
             let revealed = Arc::new(AtomicBool::new(false));
